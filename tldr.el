@@ -281,16 +281,15 @@ Please wait while the latest TLDR docs are downloaded...")
     (setq tldr-length-of-longest-command-name (apply #'max (mapcar #'length (tldr-get-commands-list))))
     (let* ((completion-extra-properties '(:annotation-function tldr-completion-annotation))
            (command (or cmd
-                       (completing-read "TLDR: " (tldr-get-commands-list) nil t
-                                        (when tldr-use-word-at-point (current-word))))))
+                        (completing-read "TLDR: " (tldr-get-commands-list) nil t
+                                         (when tldr-use-word-at-point (current-word))))))
       (if (string= "" command)
           (message "No input, canceled.")
-        (progn
-          (with-temp-buffer-window "*tldr*" nil nil)
-          (if (not (equal (buffer-name) "*tldr*"))
-              (switch-to-buffer-other-window "*tldr*"))
-          (if (not (equal major-mode 'tldr-mode))
-              (tldr-mode))
+        (with-current-buffer (get-buffer-create "*tldr*")
+          (let ((inhibit-read-only t))
+            (erase-buffer))
+          (unless (eq major-mode 'tldr-mode)
+            (tldr-mode))
           (let ((help-xref-following t))  ;See `help-buffer' & `help-setup-xref'
             (help-setup-xref (list #'tldr command) t))
           ;; fuck you docstring (╯°□°）╯︵ ┻━┻
@@ -299,7 +298,7 @@ Please wait while the latest TLDR docs are downloaded...")
           ;; ITEM is a (FUNCTION . ARGS) pair appropriate for recreating the help .....
           ;; NOT A PAIR AT ALL! This shit waste me one hour.
 
-          (let (buffer-read-only)
+          (let ((inhibit-read-only t))
             (insert (tldr-render-markdown command))
             (insert "\n")
             ;; Make a back-reference in this buffer if appropriate.
@@ -312,7 +311,8 @@ Please wait while the latest TLDR docs are downloaded...")
                 (insert "\t"))
               (help-insert-xref-button help-forward-label 'help-forward
                                        (current-buffer)))
-            (goto-char (point-min))))))))
+            (goto-char (point-min))))
+        (pop-to-buffer "*tldr*")))))
 
 (declare-function Man-default-man-entry "man")
 (declare-function helm "helm")
